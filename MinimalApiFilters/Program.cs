@@ -10,25 +10,25 @@ app.MapGet("/", () => Results.Content(
 // run filter before the endpoint executes
 app.MapGet("/before/{name?}", (string? name) => 
         new MyResult(name ?? "Hi!"))
-    .AddFilter<BeforeEndpointExecution>();
+    .AddEndpointFilter<BeforeEndpointExecution>();
 
 // run the filter before the endpoint ever executes
 app.MapGet("/short-circuit", () => "It doesn't matter")
-    .AddFilter<ShortCircuit>();
+    .AddEndpointFilter<ShortCircuit>();
 
 // run the filter after the endpoint executes
 // and hydrate the result with some extra info
 app.MapGet("/after", (string? name) => new MyResultWithEndpoint(name ?? "hi!"))
     .WithDisplayName("root endpoint (/)")
-    .AddFilter<AfterEndpointExecution>();
+    .AddEndpointFilter<AfterEndpointExecution>();
 
 app.Run();
 
-public class AfterEndpointExecution : IRouteHandlerFilter
+public class AfterEndpointExecution : IEndpointFilter
 {
     public async ValueTask<object?> InvokeAsync(
-        RouteHandlerInvocationContext context,
-        RouteHandlerFilterDelegate next)
+        EndpointFilterInvocationContext context,
+        EndpointFilterDelegate next)
     {
         var result = await next(context);
 
@@ -42,22 +42,22 @@ public class AfterEndpointExecution : IRouteHandlerFilter
     }
 }
 
-public class ShortCircuit : IRouteHandlerFilter
+public class ShortCircuit : IEndpointFilter
 {
     public ValueTask<object?> InvokeAsync(
-        RouteHandlerInvocationContext context, 
-        RouteHandlerFilterDelegate next)
+        EndpointFilterInvocationContext context, 
+        EndpointFilterDelegate next)
     {
         // because YOLO!
         return new ValueTask<object?>(Results.Json(new { Fizz = "Buzz" }));
     }
 }
 
-public class BeforeEndpointExecution : IRouteHandlerFilter
+public class BeforeEndpointExecution : IEndpointFilter
 {
     public async ValueTask<object?> InvokeAsync(
-        RouteHandlerInvocationContext context,
-        RouteHandlerFilterDelegate next
+        EndpointFilterInvocationContext context,
+        EndpointFilterDelegate next
     )
     {
         if (context.HttpContext.GetRouteValue("name") is string name)
